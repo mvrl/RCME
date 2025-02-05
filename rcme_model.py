@@ -53,33 +53,14 @@ class RCME(pl.LightningModule):
         P = torch.stack([ij2ext(*indices) for indices in pos_indices])
         N = torch.stack([-ij2ext(*indices) for indices in neg_indices])
 
-        eloss = P.mean() + N.mean()
-        return eloss, P, N[:-1]
-    
-    def radial_loss_image(self, Evv, Eii, root):
-        def ij2ext(i, j):
-            a = Evv[i] - root
-            b = Eii[j] - root
-            b_ = b - a
-
-            an = a.norm(dim=-1)
-            bn = b_.norm(dim=-1)
-            ext_c = (a * b_).sum(dim=-1) / (an * bn)
-            # ^ cos-ext angle
-            ext_a = ext_c.clip(min=-1., max=1.).acos()
-            # ext angle
-            return ext_a
-        
-        pos_indices = [(i, i) for i in range(7)]
-        neg_indices = [(i, i+7) for i in range(7)]
-
-        P = torch.stack([ij2ext(*indices) for indices in pos_indices])
-        N = torch.stack([-ij2ext(*indices) for indices in neg_indices])
+        GE_LOSS = 0
+        for i in range(1, 6):
+            GE_LOSS += torch.maximum(torch.zeros(P.shape[-1]).cuda(), ij2ext(i-1, i+1) - (torch.cos(P[i-1]).clip(0, 1)*torch.cos(P[i]).clip(0, 1)).acos()).mean()
+        GE_LOSS /= 5
 
         eloss = P.mean() + N.mean()
-        return eloss, P, N
-
-    
+        return eloss, P, N[:-1], GE_LOSS
+      
     def shared_step(self, batch, train=True):
         image_pos_list, image_neg_list, pos_list, neg_list = batch
         text_list = pos_list + neg_list
@@ -89,45 +70,20 @@ class RCME(pl.LightningModule):
         text_reshaped = torch.cat([text_reshaped, root_text], dim=0)
         text_features = self.model.encode_text(text_reshaped, normalize=True)
         text_features, root = text_features[:-1], text_features[-1]
-        
-        #loss_prior =  torch.einsum('bd,bd->b', text_features[torch.arange(6, len(text_features), 6)], text_features_frozen[torch.arange(6, len(text_features), 6)]).mean()
 
         img_list = image_pos_list + image_neg_list
         img_list = torch.stack(img_list)
         img_list = rearrange(img_list, 'b n c h w -> (b n) c h w')
         img_features = self.model.encode_image(img_list, normalize=True)
 
-        loss_prior =  torch.einsum('bd,kd->bk', text_features[torch.arange(6, len(text_features), 6)], img_features[torch.arange(6, len(text_features), 6)]) * self.model.logit_scale.exp()
-        loss_prior_t = torch.nn.functional.cross_entropy(loss_prior, torch.arange(loss_prior.size(0)).to(loss_prior.device))
-        loss_prior_i = torch.nn.functional.cross_entropy(loss_prior.t(), torch.arange(loss_prior.size(1)).to(loss_prior.device))
-
-        loss_prior = (loss_prior_t + loss_prior_i) / 2.
-
-        img_features = rearrange(img_features, '(p b n) d -> (p n) b d', n=7, p=2)
+        loss_infonce =  torch.einsum('bd,kd->bk', text_features[torch.arange(6, len(text_features), 6)], img_features[torch.arange(6, len(text_features), 6)]) * self.model.logit_scale.exp()
+        loss_cma = torch.nn.functional.cross_entropy(loss_infonce, torch.arange(loss_infonce.size(0)).to(loss_infonce.device))
              
         text_features = rearrange(text_features, '(p b n) d -> (p n) b d', n=7, p=2)
 
-        i_loss, P_i, N_i = self.radial_loss_image(text_features, img_features, root)
-        Pr = P_i.ravel()
-        Nr = N_i.ravel()
-        PNr = Pr + Nr
-        i, j = Pr.argmax(), Nr.argmax()
-        miloss = PNr[i] + PNr[j]
-        
-        # pos_features, neg_features = text_features.chunk(2, dim=0)
-        # pos_features_frozen, neg_features_frozen = text_features_frozen.chunk(2, dim=0)
-
-        # pos_features = rearrange(pos_features, 'b n d -> n b d')
-        # neg_features = rearrange(neg_features, 'b n d -> n b d')
-
-        # pos_features_frozen = rearrange(pos_features_frozen, 'b n d -> n b d')
-        # neg_features_frozen = rearrange(neg_features_frozen, 'b n d -> n b d')
-
         Evv = text_features
 
-        #loss_prior = (1 - loss_prior) / 2.
-
-        eloss, P, N = self.radial_loss(Evv, root)
+        eloss, P, N, ge_loss = self.radial_loss(Evv, root)
 
         Pr = P.ravel()
         Nr = N.ravel()
@@ -135,24 +91,24 @@ class RCME(pl.LightningModule):
         i, j = Pr.argmax(), Nr.argmax()
         mloss = PNr[i] + PNr[j]
 
-        loss = eloss + mloss + 0.1*loss_prior + i_loss + miloss
+        loss = eloss + ge_loss + 0.1*loss_cma
         
-        return loss, eloss, mloss, loss_prior, P.mean(), N.mean()
+        return loss, eloss, ge_loss, 0.1*loss_cma, P.mean(), N.mean()
         
     
     def training_step(self, batch, batch_idx):
-        loss, eloss, mloss, loss_prior,  P, N = self.shared_step(batch)
+        loss, eloss, ge_loss, loss_cma, P, N = self.shared_step(batch)
         self.log('e_loss', eloss, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
-        self.log('m_loss', mloss, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
-        self.log('p_loss', 0.1*loss_prior, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
+        self.log('ge_loss', ge_loss, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
+        self.log('loss_cma', loss_cma, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
         self.log('P', P, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
         self.log('N', N, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, eloss, mloss, loss_prior, P, N = self.shared_step(batch, train=False)
+        loss, eloss, ge_loss, loss_cma, P, N = self.shared_step(batch)
         self.log('val_loss', loss, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
-        self.log('val_p_loss', 0.1*loss_prior, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
+        self.log('val_cma_loss', loss_cma, sync_dist=True, prog_bar=True, on_epoch=True, batch_size=self.batch_size)
         return loss
     
     def train_dataloader(self):
@@ -163,7 +119,6 @@ class RCME(pl.LightningModule):
                           persistent_workers=False,
                           pin_memory=False,
                           collate_fn=collate_fn)
-                          #worker_init_fn=set_worker_sharing_strategy)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
@@ -173,7 +128,6 @@ class RCME(pl.LightningModule):
                           persistent_workers=False,
                           pin_memory=False,
                           collate_fn=collate_fn)
-                          #worker_init_fn=set_worker_sharing_strategy)
     
     def configure_optimizers(self):
         params = self.parameters()
