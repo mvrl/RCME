@@ -108,10 +108,7 @@ class RCME(pl.LightningModule):
         img_list = rearrange(img_list, 'b n c h w -> (b n) c h w')
         img_features = self.model.encode_image(img_list, normalize=True)
 
-        sims = []
-        for i in range(7):
-            sims.append(torch.einsum('bd,kd->bk', text_features[torch.arange(i, len(text_features), 6)], img_features[torch.arange(i, len(text_features), 6)]) * self.model.logit_scale.exp())
-        sim_it = torch.stack(sims, dim=0).mean(dim=0)
+        sim_it = torch.einsum('bd,kd->bk', text_features[torch.arange(6, len(text_features), 6)], img_features[torch.arange(6, len(text_features), 6)]) * self.model.logit_scale.exp()
         
         loss_prior_t = torch.nn.functional.cross_entropy(sim_it, torch.arange(sim_it.size(0)).to(sim_it.device))
         loss_prior_i = torch.nn.functional.cross_entropy(sim_it.t(), torch.arange(sim_it.size(1)).to(sim_it.device))

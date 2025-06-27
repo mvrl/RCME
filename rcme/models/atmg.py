@@ -45,18 +45,17 @@ class ATMG(pl.LightningModule):
         self.entail_weight = 0.2
     
     def forward_text(self, text):
-        text_feats = self.model.encode_text(text, normalize=True)
+        text_feats = self.model.encode_text(text, normalize=False)
         text_feats = text_feats * self.textual_alpha.exp()
         text_feats = L.exp_map0(text_feats, self.curv.exp())
         return text_feats
     
     def forward_image(self, image):
-        image_feats = self.model.encode_image(image, normalize=True)
+        image_feats = self.model.encode_image(image, normalize=False)
         image_feats = image_feats * self.visual_alpha.exp()
         image_feats = L.exp_map0(image_feats, self.curv.exp())
         return image_feats
 
-    
     def shared_step(self, batch, train=True):
         self.curv.data = torch.clamp(self.curv.data, **self._curv_minmax)
         _curv = self.curv.exp()
