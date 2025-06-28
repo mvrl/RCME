@@ -4,13 +4,12 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
-from dataset import INatTextDataset, collate_fn
+from dataset import ImageTextDataset, collate_fn
 from pytorch_lightning.callbacks import ModelCheckpoint
 from copy import deepcopy
 import math
 import open_clip
 from einops import rearrange
-from dataset import INatDatasetIntra
 
 
 class RadialEmbed(pl.LightningModule):

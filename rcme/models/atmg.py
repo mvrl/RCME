@@ -4,14 +4,13 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
-from dataset_meru import INatTextDataset, collate_fn
+from dataset_meru import ImageTextDatasetMERU as ImageTextDataset, collate_fn_meru as collate_fn
 from pytorch_lightning.callbacks import ModelCheckpoint
 from copy import deepcopy
 import lorentz as L
 import math
 import open_clip
 from einops import rearrange
-from dataset import INatDatasetIntra
 
 
 class ATMG(pl.LightningModule):
