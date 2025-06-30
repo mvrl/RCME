@@ -192,17 +192,19 @@ def oxy_angle(x: Tensor, y: Tensor, curv: float | Tensor = 1.0, eps: float = 1e-
 
     return _angle
 
-def pairwise_oxy_angle(
-            x: Tensor, y: Tensor, curv: float | Tensor = 1.0, eps: float = 1e-8):
 
-    x_time = torch.sqrt(1 / curv + torch.sum(x ** 2, dim=-1))
-    y_time = torch.sqrt(1 / curv + torch.sum(y ** 2, dim=-1))
+def pairwise_oxy_angle(
+    x: Tensor, y: Tensor, curv: float | Tensor = 1.0, eps: float = 1e-8
+):
+
+    x_time = torch.sqrt(1 / curv + torch.sum(x**2, dim=-1))
+    y_time = torch.sqrt(1 / curv + torch.sum(y**2, dim=-1))
 
     c_xyl = curv * pairwise_inner(x, y, curv)
 
-    acos_numer = y_time[None, :] + c_xyl * x_time[:,None]
+    acos_numer = y_time[None, :] + c_xyl * x_time[:, None]
 
-    acos_denom = torch.sqrt(torch.clamp(c_xyl ** 2 - 1, min=eps))
+    acos_denom = torch.sqrt(torch.clamp(c_xyl**2 - 1, min=eps))
 
     acos_input = acos_numer / (torch.norm(x, dim=-1)[..., None] * acos_denom + eps)
     _angles = torch.acos(torch.clamp(acos_input, min=-1 + eps, max=1 - eps))

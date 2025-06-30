@@ -1,9 +1,10 @@
 ### Code from https://github.com/TAU-VAILab/hierarcaps/tree/main
 
-import torch 
+import torch
 from collections import defaultdict
 import numpy as np
 from scipy.stats import kendalltau
+
 
 class Evaluate:
     def __init__(self, clip, df, proc, tokenizer, device, steps=100):
@@ -13,13 +14,14 @@ class Evaluate:
         self.device = device
         self.steps = steps
         self.tokenizer = tokenizer
+
     @torch.no_grad()
     def run(self):
 
         print("Running RCME evaluation")
 
         # inp = self.proc(text="Eukarya", padding=True, truncation=True,
-                        # return_tensors="pt").to(self.device)
+        # return_tensors="pt").to(self.device)
         # root = self.clip.get_text_features(**inp)[0]
         root = self.tokenizer(["Eukarya"]).to(self.device)
         root = self.clip.encode_text(root, normalize=False)
@@ -27,11 +29,11 @@ class Evaluate:
         root = root.cpu()
 
         def row2texts(row):
-            return [x.strip() for x in row.captions.split('=>')]
+            return [x.strip() for x in row.captions.split("=>")]
 
         def embed(row):
             texts = row2texts(row)
-            assert len(texts) == 7, f'Invalid number of val texts: {len(texts)}'
+            assert len(texts) == 7, f"Invalid number of val texts: {len(texts)}"
             # inp = self.proc(text=texts, truncation=True,
             #                 padding=True, return_tensors='pt').to(self.device)
             inp = self.tokenizer(texts).to(self.device)
@@ -64,7 +66,9 @@ class Evaluate:
 
         t2v_index = {}
         v2t_indices = defaultdict(list)
-        for i, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Embedding text data"):
+        for i, row in tqdm(
+            self.df.iterrows(), total=len(self.df), desc="Embedding text data"
+        ):
             E = embed(row)
             Es.append(E.cpu())
             j = img_fn2idx[row.img_fn]
@@ -92,7 +96,9 @@ class Evaluate:
         recalls = []
         precisions = []
 
-        for i, img_fn in enumerate(tqdm(img_fns_uniq, desc="Calculating image metrics")):
+        for i, img_fn in enumerate(
+            tqdm(img_fns_uniq, desc="Calculating image metrics")
+        ):
             VE = VEs[i]
 
             # hierarchical retrieval:
@@ -134,7 +140,9 @@ class Evaluate:
             precisions.append(precision)
             recalls.append(recall)
 
-        for i, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Calculating text metrics"):
+        for i, row in tqdm(
+            self.df.iterrows(), total=len(self.df), desc="Calculating text metrics"
+        ):
             E = Es[i]
             radii = get_dists(E[:7]).cpu()
             R.append(radii)
@@ -151,17 +159,14 @@ class Evaluate:
         precision = np.mean(precisions)
         recall = np.mean(recalls)
 
-        metrics = {
-            'd_corr': dcorr,
-            'precision': precision,
-            'recall': recall
-        }
+        metrics = {"d_corr": dcorr, "precision": precision, "recall": recall}
         print(metrics)
         # self._report_metrics(metrics)
 
         print("RCME evaluation done")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from transformers import CLIPModel, AutoProcessor
     import torch
     import pandas as pd
@@ -169,12 +174,14 @@ if __name__ == '__main__':
     from PIL import Image
     import open_clip
 
-    clip, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:Srikumar26/rcme-tol-vit-base-patch16')
-    tokenizer = open_clip.get_tokenizer('hf-hub:imageomics/bioclip')
+    clip, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(
+        "hf-hub:Srikumar26/rcme-tol-vit-base-patch16"
+    )
+    tokenizer = open_clip.get_tokenizer("hf-hub:imageomics/bioclip")
 
     # clip = CLIPModel.from_pretrained("openai/clip-vit-base-patch16")
     clip.eval().cuda()
-    df = pd.read_csv('order_dataset.csv')
+    df = pd.read_csv("order_dataset.csv")
     # proc = AutoProcessor.from_pretrained("openai/clip-vit-base-patch16")
     device = torch.device("cuda" if torch.cuda.is_available else "cpu")
     steps = 50
