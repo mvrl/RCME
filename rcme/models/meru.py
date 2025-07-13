@@ -45,6 +45,8 @@ class MERU(pl.LightningModule):
 
         self.entail_weight = cfg.entail_weight
 
+        self.cfg = cfg
+
     def forward_text(self, text):
         text_feats = self.model.encode_text(text, normalize=False)
         text_feats = text_feats * self.textual_alpha.exp()
@@ -159,20 +161,22 @@ class MERU(pl.LightningModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            num_workers=16,
+            num_workers=self.cfg.num_workers,
             shuffle=True,
             persistent_workers=False,
             pin_memory=False,
+            collate_fn=collate_fn,
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            num_workers=16,
+            num_workers=self.cfg.num_workers,
             shuffle=False,
             persistent_workers=False,
             pin_memory=False,
+            collate_fn=collate_fn,
         )
 
     def configure_optimizers(self):

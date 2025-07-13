@@ -43,6 +43,7 @@ class ATMG(pl.LightningModule):
             "max": math.log(1.0 * 10),
             "min": math.log(1.0 / 10),
         }
+        self.cfg = cfg
 
     def forward_text(self, text):
         text_feats = self.model.encode_text(text, normalize=False)
@@ -138,26 +139,28 @@ class ATMG(pl.LightningModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            num_workers=cfg.num_workers,
+            num_workers=self.cfg.num_workers,
             shuffle=True,
             persistent_workers=False,
             pin_memory=False,
+            collate_fn=collate_fn,
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            num_workers=cfg.num_workers,
+            num_workers=self.cfg.num_workers,
             shuffle=False,
             persistent_workers=False,
             pin_memory=False,
+            collate_fn=collate_fn,
         )
 
     def configure_optimizers(self):
         params = self.parameters()
         self.optim = torch.optim.AdamW(params, lr=self.lr, betas=(0.9, 0.98), eps=1e-6)
         self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer=self.optim, max_lr=self.lr, total_steps=cfg.optimizer_steps
+            optimizer=self.optim, max_lr=self.lr, total_steps=self.cfg.optimizer_steps
         )
         return [self.optim], [self.scheduler]
