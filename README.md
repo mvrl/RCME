@@ -51,7 +51,8 @@ rcme/data/bioclip/scripts/submit_download_tol-10m_components.bash
 ```bash
 python rcme/data/bioclip/write_imgs.py
 ```
-**Hint**: Setup paths and other variables in our script.
+**Hint**: Setup paths and other variables in our script.<br>
+**Hint**: Currently only supports `num_workers=1`
 
 ## 🔥 Training
 1. Setup all hyperparameters in `rcme/config.py` file.
@@ -59,7 +60,7 @@ python rcme/data/bioclip/write_imgs.py
 ```bash
 python rcme/train.py --model="rcme"
 ```
-**Hint**: Currently supports `rcme`, `radial_embeddings_model`, `atmg` and `meru`.
+**Hint**: Currently supports `rcme`, `radial`, `atmg` and `meru`.
 
 ## ✅ Evaluation
 
