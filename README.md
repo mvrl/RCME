@@ -27,6 +27,14 @@ Radial Cross-Modal Embeddings (RCME) is a state-of-the-art hierarchical image-te
 <img src="imgs/hierarcaps_ordering.png" width="370">
 </div>
 
+## 📦 Models
+
+|Model|Architecture|HuggingFace|
+|--|--|--|
+|CLIP|ViT-B/16|`MVRL/rcme-vit-base-patch16`|
+|CLIP|ViT-L/14|`MVRL/rcme-vit-large-patch14`|
+|TreeofLife|ViT-B/16|`MVRL/rcme-tol-vit-base-patch16`|
+
 ## ⚙️ Setup
 
 #### Setting up 
