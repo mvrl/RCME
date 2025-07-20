@@ -59,33 +59,6 @@ class RCME(pl.LightningModule):
         P = torch.stack([ij2ext(*indices) for indices in pos_indices])
         N = torch.stack([-ij2ext(*indices) for indices in neg_indices])
 
-        eloss = P.mean() + N.mean()
-        return eloss, P, N
-
-        # def radial_loss_image(self, Evv, Eii, root):
-        #     def ij2ext(i, j):
-        #         if i==0:
-        #             a = Evv[i] - root
-        #             b = Eii[j] - root
-        #         else:
-        #             a = Evv[i] - Evv[i-1]
-        #             b = Eii[j] - Evv[i-1]
-        #         b_ = b - a
-
-        #         an = a.norm(dim=-1)
-        #         bn = b_.norm(dim=-1)
-        #         ext_c = (a * b_).sum(dim=-1) / (an * bn)
-        #         # ^ cos-ext angle
-        #         ext_a = ext_c.clip(min=-1., max=1.).acos()
-        #         # ext angle
-        #         return ext_a
-
-        pos_indices = [(i, i) for i in range(7)]
-        neg_indices = [(i, i + 7) for i in range(7)]
-
-        P = torch.stack([ij2ext(*indices) for indices in pos_indices])
-        N = torch.stack([-ij2ext(*indices) for indices in neg_indices])
-
         GE_LOSS = 0
         for i in range(1, 6):
             GE_LOSS += torch.maximum(
