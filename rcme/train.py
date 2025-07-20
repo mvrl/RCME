@@ -36,8 +36,8 @@ def main(args):
         mode='min',
         save_last=True,
     )
-    trainer = pl.Trainer(accelerator='gpu', devices=cfg.[args.model].gpus, max_epochs=cfg.[args.model].max_epochs, strategy='ddp', callbacks=[checkpoint_callback], 
-    accumulate_grad_batches=cfg.[args.model].accumulate_grad_batches, val_check_interval=0.1, limit_val_batches=100)
+    trainer = pl.Trainer(accelerator='gpu', devices=cfg[args.model].gpus, max_epochs=cfg[args.model].max_epochs, strategy='ddp', callbacks=[checkpoint_callback],
+    accumulate_grad_batches=cfg[args.model].accumulate_grad_batches, val_check_interval=0.1, limit_val_batches=100)
     trainer.fit(model)
 
 if __name__ == "__main__":
