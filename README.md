@@ -111,17 +111,6 @@ The evaluation script is self-contained and loads a pretrained model directly fr
    ```
    See the [📦 Models](#-models) table above for all available HuggingFace identifiers.
 
-3. Example output:
-   ```
-   Running RCME evaluation
-   Embedding image data: 100%|██████████| ...
-   Embedding text data:  100%|██████████| ...
-   Calculating image metrics: 100%|██████████| ...
-   Calculating text metrics:  100%|██████████| ...
-   {'d_corr': 0.85, 'precision': 0.72, 'recall': 0.80}
-   RCME evaluation done
-   ```
-
 ## 📑 Citation
 
 ```bibtex
