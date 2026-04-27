@@ -72,7 +72,55 @@ python rcme/train.py --model="rcme"
 
 ## ✅ Evaluation
 
-Scripts and documentation coming soon...
+The evaluation script measures **hierarchical ordering quality** using iNaturalist 2021 validation images. It computes three metrics:
+
+| Metric | Description |
+|---|---|
+| `d_corr` | Kendall's τ distance correlation — measures how well the model orders taxonomy levels by radius |
+| `precision` | Fraction of model-predicted texts that are ground-truth taxonomy labels |
+| `recall` | Fraction of ground-truth taxonomy labels recovered across all hierarchy levels |
+
+### Prerequisites
+
+1. Download the iNaturalist 2021 validation split. The evaluation CSV (`rcme/eval/order_dataset.csv`) expects images to be accessible at paths of the form:
+   ```
+   inat_21/val/<category_folder>/<image_file>.jpg
+   ```
+   Ensure these paths are accessible from the directory you run the script from.
+
+### Running Evaluation
+
+The evaluation script is self-contained and loads a pretrained model directly from HuggingFace.
+
+1. Navigate to the eval directory:
+   ```bash
+   cd rcme/eval
+   ```
+
+2. Run the evaluation (uses `MVRL/rcme-tol-vit-base-patch16` by default):
+   ```bash
+   python order_metrics.py
+   ```
+
+   To evaluate a different model, open `order_metrics.py` and update the model identifier in the `__main__` block:
+   ```python
+   # Change this line to use a different model:
+   clip, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(
+       "hf-hub:MVRL/rcme-vit-base-patch16"   # or rcme-vit-large-patch14
+   )
+   ```
+   See the [📦 Models](#-models) table above for all available HuggingFace identifiers.
+
+3. Example output:
+   ```
+   Running RCME evaluation
+   Embedding image data: 100%|██████████| ...
+   Embedding text data:  100%|██████████| ...
+   Calculating image metrics: 100%|██████████| ...
+   Calculating text metrics:  100%|██████████| ...
+   {'d_corr': 0.85, 'precision': 0.72, 'recall': 0.80}
+   RCME evaluation done
+   ```
 
 📑 Citation
 
