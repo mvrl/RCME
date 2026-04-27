@@ -122,7 +122,7 @@ The evaluation script is self-contained and loads a pretrained model directly fr
    RCME evaluation done
    ```
 
-📑 Citation
+## 📑 Citation
 
 ```bibtex
 @inproceedings{sastry2025global,
