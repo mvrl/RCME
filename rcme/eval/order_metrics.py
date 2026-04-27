@@ -175,7 +175,7 @@ if __name__ == "__main__":
     import open_clip
 
     clip, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(
-        "hf-hub:Srikumar26/rcme-tol-vit-base-patch16"
+        "hf-hub:MVRL/rcme-tol-vit-base-patch16"
     )
     tokenizer = open_clip.get_tokenizer("hf-hub:imageomics/bioclip")
 
